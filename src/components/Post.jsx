@@ -5,4 +5,5 @@ export default function Post({ title, body }) {
       <p>{body}</p>
     </article>
   );
+  
 }
