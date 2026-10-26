@@ -16,4 +16,5 @@ export async function fetchPosts(signal) {
   }
 
   return posts;
+  
 }
