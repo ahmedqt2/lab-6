@@ -1,122 +1,78 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useEffect, useReducer, useState } from 'react';
+import { fetchPosts } from './api/postsApi.js';
+import { initialState, postsReducer } from './reducer/postsReducer.js';
+import FilterForm from './components/FilterForm.jsx';
+import PostList from './components/PostList.jsx';
+import './App.css';
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [state, dispatch] = useReducer(postsReducer, initialState);
+  const [filter, setFilter] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let active = true;
+
+    async function loadPosts() {
+      dispatch({ type: 'FETCH_START' });
+      try {
+        const posts = await fetchPosts(controller.signal);
+        if (active) dispatch({ type: 'FETCH_SUCCESS', payload: posts });
+      } catch (error) {
+        if (active && error.name !== 'AbortError') {
+          dispatch({
+            type: 'FETCH_ERROR',
+            payload: error.message || 'Unable to load posts. Please check your connection.',
+          });
+        }
+      }
+    }
+
+    loadPosts();
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, []);
+
+  // Filtering is derived during render, never stored as another state value.
+  const query = filter.trim().toLowerCase();
+  const filteredPosts = state.posts.filter((post) =>
+    post.title.toLowerCase().includes(query)
+  );
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
+    <main className="dashboard">
+      <header className="page-header">
+        <p className="eyebrow">WEB PROGRAMMING / ASSIGNMENT 6</p>
+        <h1>Post Dashboard</h1>
+        <p>Explore posts from JSONPlaceholder and find a title that interests you.</p>
+      </header>
+      <FilterForm filter={filter} onFilterChange={setFilter} />
+      <section className="results" aria-label="Post results" aria-busy={state.loading}>
+        {state.loading ? (
+          <p className="notice" role="status">Loading posts...</p>
+        ) : state.error ? (
+          <div className="notice error" role="alert">
+            <h2>Posts could not be loaded</h2>
+            <p>{state.error}</p>
+            <p>Check your connection and reload the page to try again.</p>
+          </div>
+        ) : filteredPosts.length === 0 ? (
+          <div className="notice" role="status">
+            <h2>No posts found.</h2>
+            <p>{query ? 'Try a different title or clear the filter.' : 'The server returned no posts.'}</p>
+          </div>
+        ) : (
+          <>
+            <p className="result-count" role="status">
+              Showing {filteredPosts.length} of {state.posts.length} posts
+            </p>
+            <PostList posts={filteredPosts} />
+          </>
+        )}
       </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <footer>React II: side effects, asynchronous data, and reducer state.</footer>
+    </main>
+  );
 }
-
-export default App
