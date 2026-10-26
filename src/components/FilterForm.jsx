@@ -14,6 +14,7 @@ export default function FilterForm({ filter, onFilterChange }) {
         <button type="button" onClick={() => onFilterChange('')} disabled={!filter}>
           Clear
         </button>
+        
       </div>
       <p id="filter-help">Results update as you type. Search ignores letter case.</p>
     </form>
