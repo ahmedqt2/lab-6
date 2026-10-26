@@ -3,7 +3,6 @@ export const initialState = {
   loading: false,
   error: null,
 };
-
 export function postsReducer(state, action) {
   switch (action.type) {
     case 'FETCH_START':
